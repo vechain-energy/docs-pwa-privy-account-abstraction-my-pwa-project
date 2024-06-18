@@ -5,8 +5,10 @@ import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { useState } from 'react'
 import { createWalletClient, custom, isAddress, parseEther } from 'viem'
 import { baseGoerli } from 'viem/chains'
+import { useVeChainAccount } from '@/lib/useVeChainAccount'
 
 const EmbeddedWallet = () => {
+	const vechain = useVeChainAccount()
 	const { signMessage, sendTransaction, exportWallet } = usePrivy()
 	const { wallets } = useWallets()
 	const embeddedWallet = wallets.find(
@@ -33,37 +35,33 @@ const EmbeddedWallet = () => {
 	}
 
 	const onTransfer = async () => {
-		if (!embeddedWallet) return
+		if (!vechain.address) return
 		try {
-			// Switch network to Base Goerli
-			await embeddedWallet.switchChain(baseGoerli.id)
-			// Get an EIP1193 provider from the embedded wallet
-			const provider = await embeddedWallet.getEthereumProvider()
-			// From the EIP1193 provider, create a viem wallet client
-			const walletClient = createWalletClient({
-				account: embeddedWallet.address as `0x${string}`,
-				chain: baseGoerli,
-				transport: custom(provider),
-			})
-
-			// Send transaction using the viem wallet client. Alternatively, you
-			// may use Privy's `sendTransaction` method. This is just an example
-			// of the many ways to send a transaction from the wallet.
 			setTxIsLoading(true)
-			const _txHash = await walletClient.sendTransaction({
-				account: embeddedWallet.address as `0x${string}`,
+			const _txHash = await vechain.sendTransaction({
 				to: recipientAddress as `0x${string}`,
 				value: parseEther('0.004'),
 			})
 			setTxHash(_txHash)
 		} catch (e) {
 			console.error('Transfer failed with error ', e)
+			setTxIsLoading(false)
 		}
-		setTxIsLoading(false)
 	}
 
 	return (
 		<AuthenticatedPage>
+			<Section>
+				<p className='text-md mt-2 font-bold uppercase text-gray-700'>
+					Your VeChain Address
+				</p>
+				<textarea
+					value={vechain.address}
+					className='mt-4 h-12 w-full rounded-md bg-slate-700 p-4 font-mono text-xs text-slate-50 disabled:opacity-25'
+					rows={1}
+					readOnly
+				/>
+			</Section>
 			<Section>
 				<p className='text-md mt-2 font-bold uppercase text-gray-700'>
 					Sign a message
